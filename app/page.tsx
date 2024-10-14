@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { Globe, ChevronDown, Check, Search } from "lucide-react"
 import Link from "next/link"
 import { Nunito } from 'next/font/google'
@@ -12,7 +12,7 @@ const nunito = Nunito({
 })
 
 const timezones = [
-  { name: "UTC", city: "Coordinated Universal Time" },
+  { name: "UTC", city: "UTC" },
   { name: "Europe/London", city: "London" },
   { name: "Europe/Paris", city: "Paris" },
   { name: "Europe/Amsterdam", city: "Amsterdam" },
@@ -38,40 +38,85 @@ const themes = [
   { name: "worldly dark", colors: ["#e2b714", "#323437", "#646669"] },
   { name: "moon dark", colors: ["#d79921", "#282828", "#a89984"] },
   { name: "spatula", colors: ["#ff79c6", "#282a36", "#f8f8f2"] },
+  { name: "frog pond", colors: ["#50fa7b", "#285943", "#77ab59"] },
+  { name: "lion's mane", colors: ["#ffb86c", "#4a3f35", "#d0a85c"] },
+  { name: "skyscraper", colors: ["#5555ff", "#1e2a3a", "#a0b9d9"] },
+  { name: "rainy day", colors: ["#8be9fd", "#44475a", "#6272a4"] },
+  { name: "fluffy cloud", colors: ["#f8f8f2", "#b8c0c2", "#6272a4"] },
+  { name: "loyal dog", colors: ["#bd93f9", "#3b4252", "#81a1c1"] },
+  { name: "curious cat", colors: ["#ff79c6", "#282a36", "#f8f8f2"] },
+  { name: "playful dolphin", colors: ["#8be9fd", "#0b2447", "#576cbc"] },
+  { name: "local cafe", colors: ["#ffb86c", "#3c3836", "#a89984"] },
+  { name: "timezone traveler", colors: ["#50fa7b", "#282a36", "#6272a4"] },
+  { name: "desert oasis", colors: ["#f1fa8c", "#5b4636", "#d79921"] },
+  { name: "arctic chill", colors: ["#8be9fd", "#2e3440", "#eceff4"] },
+  { name: "lava lamp", colors: ["#ff5555", "#282a36", "#ff79c6"] },
+  { name: "forest canopy", colors: ["#50fa7b", "#2d3436", "#55efc4"] },
+  { name: "ocean depths", colors: ["#8be9fd", "#0c2461", "#4a69bd"] },
+  { name: "neon nights", colors: ["#ff79c6", "#170055", "#9d0191"] },
+  { name: "pastel dream", colors: ["#ffb8d1", "#c8d6e5", "#8395a7"] },
+  { name: "retro gaming", colors: ["#50fa7b", "#121212", "#ff5555"] },
 ]
 
-interface WorldTimeApiResponse {
-  datetime: string;
-  timezone: string;
+interface TimeApiResponse {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+  seconds: number;
+  dateTime: string;
+  timeZone: string;
 }
 
 export default function Component() {
-  const [time, setTime] = useState<Date | null>(null)
+  const [timeData, setTimeData] = useState<TimeApiResponse | null>(null)
   const [is24Hour, setIs24Hour] = useState(true)
-  const [timezone, setTimezone] = useState("UTC")
+  const [timezone, setTimezone] = useState(() => {
+    // Set initial timezone to local timezone
+    return Intl.DateTimeFormat().resolvedOptions().timeZone
+  })
   const [isTimezoneDropdownOpen, setIsTimezoneDropdownOpen] = useState(false)
   const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [currentTheme, setCurrentTheme] = useState(themes[0])
-  const [localTimezone, setLocalTimezone] = useState("")
 
   const timezoneDropdownRef = useRef<HTMLDivElement>(null)
   const themeDropdownRef = useRef<HTMLDivElement>(null)
+  const initialFetchDone = useRef(false)
+
+  const fetchTime = useCallback(async (tz: string) => {
+    try {
+      const response = await fetch(`https://timeapi.io/api/Time/current/zone?timeZone=${encodeURIComponent(tz)}`);
+      const data: TimeApiResponse = await response.json();
+      setTimeData(data);
+    } catch (error) {
+      console.error("Failed to fetch time:", error);
+      // Fallback to system time
+      const now = new Date();
+      setTimeData({
+        year: now.getFullYear(),
+        month: now.getMonth() + 1,
+        day: now.getDate(),
+        hour: now.getHours(),
+        minute: now.getMinutes(),
+        seconds: now.getSeconds(),
+        dateTime: now.toISOString(),
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      });
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchTime = async () => {
-      try {
-        const response = await fetch(`http://worldtimeapi.org/api/timezone/${timezone}`);
-        const data: WorldTimeApiResponse = await response.json();
-        setTime(new Date(data.datetime));
-      } catch (error) {
-        console.error("Failed to fetch time:", error);
-        setTime(new Date()); // Fallback to system time
-      }
-    };
+    // Fetch time only once on initial render
+    if (!initialFetchDone.current) {
+      fetchTime(timezone);
+      initialFetchDone.current = true;
+    }
 
-    fetchTime();
-    const timer = setInterval(fetchTime, 1000);
+    const timer = setInterval(() => {
+      setTimeData(prevTimeData => prevTimeData ? { ...prevTimeData, seconds: prevTimeData.seconds + 1 } : null);
+    }, 1000);
 
     const handleClickOutside = (event: MouseEvent) => {
       if (timezoneDropdownRef.current && !timezoneDropdownRef.current.contains(event.target as Node)) {
@@ -84,53 +129,40 @@ export default function Component() {
 
     document.addEventListener("mousedown", handleClickOutside)
 
-    // Get the local timezone
-    const localTz = Intl.DateTimeFormat().resolvedOptions().timeZone
-    setLocalTimezone(localTz)
-    setTimezone(localTz) // Set the initial timezone to the local timezone
-
     return () => {
       clearInterval(timer)
       document.removeEventListener("mousedown", handleClickOutside)
     }
-  }, [timezone])
+  }, [fetchTime, timezone]);
 
-  const formatTime = (date: Date) => {
-    const options: Intl.DateTimeFormatOptions = {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: !is24Hour,
-      timeZone: timezone,
+  const handleTimezoneChange = useCallback((newTimezone: string) => {
+    setTimezone(newTimezone);
+    setIsTimezoneDropdownOpen(false);
+    fetchTime(newTimezone);
+  }, [fetchTime]);
+
+  const formatTime = () => {
+    if (!timeData) return '';
+    const { hour, minute, seconds } = timeData;
+    if (is24Hour) {
+      return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    } else {
+      const period = hour >= 12 ? 'PM' : 'AM';
+      const hour12 = hour % 12 || 12;
+      return `${hour12.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')} ${period}`;
     }
-    return new Intl.DateTimeFormat("en-US", options).format(date)
   }
 
-  const formatDate = (date: Date) => {
-    const options: Intl.DateTimeFormatOptions = {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      timeZone: timezone,
-    }
-    return new Intl.DateTimeFormat("en-US", options).format(date)
+  const formatDate = () => {
+    if (!timeData) return '';
+    const { year, month, day } = timeData;
+    const date = new Date(year, month - 1, day);
+    return date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   }
 
-  const getTimezoneOffset = (tz: string) => {
-    const now = new Date()
-    const tzTime = new Date(now.toLocaleString("en-US", { timeZone: tz }))
-    const utcTime = new Date(now.toLocaleString("en-US", { timeZone: "UTC" }))
-    const diffHours = (tzTime.getTime() - utcTime.getTime()) / 3600000
-    const sign = diffHours >= 0 ? "+" : "-"
-    return `${sign}${Math.abs(Math.round(diffHours))}H`
-  }
-
-  const sortedTimezones = [...timezones].sort((a, b) => {
-    const offsetA = getTimezoneOffset(a.name)
-    const offsetB = getTimezoneOffset(b.name)
-    return parseInt(offsetA) - parseInt(offsetB)
-  })
+  const sortedTimezones = useMemo(() => {
+    return [...timezones].sort((a, b) => a.city.localeCompare(b.city));
+  }, []);
 
   const filteredTimezones = sortedTimezones.filter(tz =>
     tz.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -161,26 +193,21 @@ export default function Component() {
     scrollbarColor: `${currentTheme.colors[2]} ${currentTheme.colors[1]}`,
   } as const;
 
-  const handleTimezoneChange = (newTimezone: string) => {
-    setTimezone(newTimezone);
-    setIsTimezoneDropdownOpen(false);
-  };
-
   return (
-    <div className={`flex flex-col items-center justify-between min-h-screen bg-[#323437] text-[#646669] ${nunito.className}`} style={{ backgroundColor: currentTheme.colors[1], color: currentTheme.colors[2] }}>
-      <div className="flex-grow flex flex-col items-center justify-center">
-        <div className="relative mb-2" ref={timezoneDropdownRef}>
+    <div className={`flex flex-col items-center justify-between min-h-screen bg-[#323437] text-[#646669] ${nunito.className} p-4`} style={{ backgroundColor: currentTheme.colors[1], color: currentTheme.colors[2] }}>
+      <div className="flex-grow flex flex-col items-center justify-center w-full">
+        <div className="relative mb-4 w-full max-w-xs" ref={timezoneDropdownRef}>
           <button
             onClick={() => setIsTimezoneDropdownOpen(!isTimezoneDropdownOpen)}
-            className="flex items-center space-x-2 text-xl font-bold focus:outline-none hover:text-[#e2b714] transition-colors"
+            className="flex items-center justify-center space-x-2 text-xl font-bold focus:outline-none hover:text-[#e2b714] transition-colors w-full"
             style={{ color: currentTheme.colors[2] }}
           >
             <Globe size={24} />
-            <span>{timezones.find(tz => tz.name === timezone)?.city || timezone}</span>
+            <span className="truncate">{timezones.find(tz => tz.name === timezone)?.city || timezone}</span>
             <ChevronDown size={24} />
           </button>
           {isTimezoneDropdownOpen && (
-            <div className="absolute mt-2 w-80 bg-[#2c2e31] rounded-md shadow-lg z-10" style={{ backgroundColor: currentTheme.colors[1] }}>
+            <div className="absolute mt-2 w-full bg-[#2c2e31] rounded-md shadow-lg z-10" style={{ backgroundColor: currentTheme.colors[1] }}>
               <div className="flex items-center p-2 bg-[#232528]" style={{ backgroundColor: currentTheme.colors[1] }}>
                 <Search size={20} className="mr-2" style={{ color: currentTheme.colors[2] }} />
                 <input
@@ -201,44 +228,52 @@ export default function Component() {
                     onClick={() => handleTimezoneChange(tz.name)}
                   >
                     <span>{tz.city}</span>
-                    <div className="flex items-center">
-                      <span className="mr-2 text-sm">{getTimezoneOffset(tz.name)}</span>
-                      {timezone === tz.name && <Check size={16} style={{ color: currentTheme.colors[0] }} />}
-                    </div>
+                    {timezone === tz.name && <Check size={16} style={{ color: currentTheme.colors[0] }} />}
                   </button>
                 ))}
               </div>
             </div>
           )}
         </div>
-        <div className="text-9xl font-bold mb-4" style={{ color: currentTheme.colors[0] }}>
-          {time ? formatTime(time) : ''}
+        <div className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-black mb-4 text-center" style={{ color: currentTheme.colors[0] }}>
+          {timeData ? formatTime() : ''}
         </div>
-        <div className="text-2xl font-light mb-2">
-          {time ? formatDate(time) : ''}
+        <div className="text-lg sm:text-xl md:text-2xl font-bold mb-4 text-center">
+          {timeData ? formatDate() : ''}
         </div>
       </div>
       <div className="w-full">
-        <div className="flex justify-center mb-2">
+        <div className="flex justify-center mb-4">
           <button
             onClick={() => setIs24Hour(!is24Hour)}
-            className="text-xl font-bold hover:text-[#e2b714] transition-colors"
+            className="text-lg sm:text-xl font-bold hover:text-[#e2b714] transition-colors"
             style={{ color: currentTheme.colors[2] }}
           >
-            {is24Hour ? "24 hour clock" : "am/pm"}
+            {is24Hour ? "Switch to AM/PM" : "Switch to 24-hour"}
           </button>
         </div>
-        <footer className="w-full py-2 px-4 text-xs">
-          <div className="flex justify-between items-center">
-            <div className="flex space-x-4">
-              <Link href="#" className="hover:text-[#e2b714] transition-colors" style={{ color: currentTheme.colors[2] }}>contact</Link>
-              <Link href="#" className="hover:text-[#e2b714] transition-colors" style={{ color: currentTheme.colors[2] }}>support</Link>
-              <Link href="#" className="hover:text-[#e2b714] transition-colors" style={{ color: currentTheme.colors[2] }}>github</Link>
-              <Link href="#" className="hover:text-[#e2b714] transition-colors" style={{ color: currentTheme.colors[2] }}>discord</Link>
-              <Link href="#" className="hover:text-[#e2b714] transition-colors" style={{ color: currentTheme.colors[2] }}>twitter</Link>
-              <Link href="#" className="hover:text-[#e2b714] transition-colors" style={{ color: currentTheme.colors[2] }}>terms</Link>
-              <Link href="#" className="hover:text-[#e2b714] transition-colors" style={{ color: currentTheme.colors[2] }}>security</Link>
-              <Link href="#" className="hover:text-[#e2b714] transition-colors" style={{ color: currentTheme.colors[2] }}>privacy</Link>
+        <footer className="w-full py-2 px-4 text-sm">
+          <div className="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
+            <div className="flex flex-wrap justify-center sm:justify-start gap-2 sm:gap-4">
+
+              <Link 
+                href="https://x.com/Hugotions" 
+                className="hover:text-[#e2b714] transition-colors" 
+                style={{ color: currentTheme.colors[2] }}
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
+                twitter
+              </Link>
+              <Link 
+                href="https://github.com/Pinpas" 
+                className="hover:text-[#e2b714] transition-colors" 
+                style={{ color: currentTheme.colors[2] }}
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
+                github
+              </Link>
             </div>
             <div className="flex items-center space-x-4 relative" ref={themeDropdownRef}>
               <button
@@ -248,9 +283,9 @@ export default function Component() {
               >
                 {currentTheme.name}
               </button>
-              <span>v1.0.0</span>
+              <span>v0.0.1</span>
               {isThemeDropdownOpen && (
-                <div className="absolute bottom-full right-0 mb-2 w-64 bg-[#2c2e31] rounded-md shadow-lg z-10" style={{ backgroundColor: currentTheme.colors[1] }}>
+                <div className="absolute sm:bottom-full sm:right-0 bottom-[100%] left-1/2 sm:left-auto transform -translate-x-1/2 sm:translate-x-0 mb-2 w-64 bg-[#2c2e31] rounded-md shadow-lg z-10" style={{ backgroundColor: currentTheme.colors[1] }}>
                   <div className="flex items-center p-2 bg-[#232528]" style={{ backgroundColor: currentTheme.colors[1] }}>
                     <Search size={20} className="mr-2" style={{ color: currentTheme.colors[2] }} />
                     <input
