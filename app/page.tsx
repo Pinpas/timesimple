@@ -177,7 +177,6 @@ export default function Component() {
   // These refs help me manage the dropdown menus
   const timezoneDropdownRef = useRef<HTMLDivElement>(null)
   const themeDropdownRef = useRef<HTMLDivElement>(null)
-  const _initialFetchDone = useRef(false)
 
   // This function fetches the current time for a given timezone from an API
   const fetchTime = useCallback(async (tz: string) => {
