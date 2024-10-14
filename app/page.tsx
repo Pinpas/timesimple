@@ -7,11 +7,14 @@ import { Nunito } from 'next/font/google'
 import './globals.css'
 import Head from "next/head"
 
+// I'm using the Nunito font for a clean, modern look
 const nunito = Nunito({
   subsets: ['latin'],
   display: 'swap',
 })
 
+// Here's a list of timezones I want to support. I've chosen major cities 
+// from different parts of the world to give users a good range of options.
 const timezones = [
   { name: "UTC", city: "UTC" },
   { name: "Europe/London", city: "London" },
@@ -35,6 +38,8 @@ const timezones = [
   { name: "Africa/Johannesburg", city: "Johannesburg" },
 ]
 
+// I've created a bunch of color themes. Each theme has a name and three colors:
+// The first color is for highlights, the second for backgrounds, and the third for text.
 const themes = [
   { name: "worldly dark", colors: ["#e2b714", "#323437", "#646669"] },
   { name: "moon dark", colors: ["#d79921", "#282828", "#a89984"] },
@@ -59,6 +64,7 @@ const themes = [
   { name: "retro gaming", colors: ["#50fa7b", "#121212", "#ff5555"] },
 ]
 
+// This interface defines the structure of the response I expect from the time API
 interface TimeApiResponse {
   year: number;
   month: number;
@@ -70,6 +76,8 @@ interface TimeApiResponse {
   timeZone: string;
 }
 
+// This is a simple SVG logo component. I'm using it in the navbar.
+// It takes primary and secondary colors as props to match the current theme.
 const Logo = ({ primaryColor, secondaryColor }: { primaryColor: string; secondaryColor: string }) => (
   <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke={primaryColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -77,6 +85,8 @@ const Logo = ({ primaryColor, secondaryColor }: { primaryColor: string; secondar
   </svg>
 );
 
+// This component dynamically updates the favicon based on the current theme.
+// It's a neat little touch that makes the site feel more cohesive.
 const DynamicFavicon = ({ primaryColor, secondaryColor }: { primaryColor: string; secondaryColor: string }) => {
   useEffect(() => {
     const canvas = document.createElement("canvas");
@@ -115,10 +125,11 @@ const DynamicFavicon = ({ primaryColor, secondaryColor }: { primaryColor: string
 };
 
 export default function Component() {
+  // Here are all the state variables I'm using to manage the app's behavior
   const [timeData, setTimeData] = useState<TimeApiResponse | null>(null)
   const [is24Hour, setIs24Hour] = useState(true)
   const [timezone, setTimezone] = useState(() => {
-    // Set initial timezone to local timezone
+    // I'm setting the initial timezone to the user's local timezone
     return Intl.DateTimeFormat().resolvedOptions().timeZone
   })
   const [isTimezoneDropdownOpen, setIsTimezoneDropdownOpen] = useState(false)
@@ -126,10 +137,12 @@ export default function Component() {
   const [searchTerm, setSearchTerm] = useState("")
   const [currentTheme, setCurrentTheme] = useState(themes[0])
 
+  // These refs help me manage the dropdown menus
   const timezoneDropdownRef = useRef<HTMLDivElement>(null)
   const themeDropdownRef = useRef<HTMLDivElement>(null)
   const initialFetchDone = useRef(false)
 
+  // This function fetches the current time for a given timezone from an API
   const fetchTime = useCallback(async (tz: string) => {
     try {
       const response = await fetch(`https://timeapi.io/api/Time/current/zone?timeZone=${encodeURIComponent(tz)}`);
@@ -137,7 +150,7 @@ export default function Component() {
       setTimeData(data);
     } catch (error) {
       console.error("Failed to fetch time:", error);
-      // Fallback to system time
+      // If the API call fails, I fall back to using the system time
       const now = new Date();
       setTimeData({
         year: now.getFullYear(),
@@ -152,11 +165,12 @@ export default function Component() {
     }
   }, []);
 
+  // This effect handles time updates and outside clicks for dropdowns
   useEffect(() => {
     // Fetch time immediately on mount or timezone change
     fetchTime(timezone);
 
-    // Set up two intervals:
+    // I'm using two intervals here:
     // 1. A fast interval to update seconds locally
     const fastInterval = setInterval(() => {
       setTimeData(prevTimeData => {
@@ -165,6 +179,7 @@ export default function Component() {
         let { year, month, day, hour, minute, seconds } = prevTimeData;
         seconds++;
         
+        // Handle rollovers for seconds, minutes, and hours
         if (seconds >= 60) {
           seconds = 0;
           minute++;
@@ -173,7 +188,7 @@ export default function Component() {
             hour++;
             if (hour >= 24) {
               hour = 0;
-              // We're not handling day/month/year rollovers here
+              // I'm not handling day/month/year rollovers here
               // The API call will correct this soon
             }
           }
@@ -188,6 +203,7 @@ export default function Component() {
       fetchTime(timezone);
     }, 30000); // Fetch every 30 seconds
 
+    // This function closes the dropdowns when clicking outside
     const handleClickOutside = (event: MouseEvent) => {
       if (timezoneDropdownRef.current && !timezoneDropdownRef.current.contains(event.target as Node)) {
         setIsTimezoneDropdownOpen(false)
@@ -199,7 +215,7 @@ export default function Component() {
 
     document.addEventListener("mousedown", handleClickOutside)
 
-    // Cleanup function
+    // Cleanup function to clear intervals and remove event listener
     return () => {
       clearInterval(fastInterval);
       clearInterval(slowInterval);
@@ -207,6 +223,7 @@ export default function Component() {
     };
   }, [fetchTime, timezone]);
 
+  // This effect updates the favicon when the theme changes
   useEffect(() => {
     // This effect will run when the theme changes
     const updateFavicon = () => {
@@ -267,12 +284,14 @@ export default function Component() {
     return () => clearTimeout(timeoutId);
   }, [currentTheme]);
 
+  // This function handles timezone changes
   const handleTimezoneChange = useCallback((newTimezone: string) => {
     setTimezone(newTimezone);
     setIsTimezoneDropdownOpen(false);
     fetchTime(newTimezone);
   }, [fetchTime]);
 
+  // These functions format the time and date for display
   const formatTime = () => {
     if (!timeData) return '';
     const { hour, minute, seconds } = timeData;
@@ -293,10 +312,12 @@ export default function Component() {
     return date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   }
 
+  // I'm sorting the timezones alphabetically by city name
   const sortedTimezones = useMemo(() => {
     return [...timezones].sort((a, b) => a.city.localeCompare(b.city));
   }, []);
 
+  // These filtered arrays are used for the search functionality in dropdowns
   const filteredTimezones = sortedTimezones.filter(tz =>
     tz.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     tz.city.toLowerCase().includes(searchTerm.toLowerCase())
@@ -306,6 +327,7 @@ export default function Component() {
     theme.name.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
+  // These styles make the scrollbars match the current theme
   const scrollbarStyles = {
     // Webkit browsers like Chrome, Safari
     '::-webkit-scrollbar': {
@@ -326,9 +348,10 @@ export default function Component() {
     scrollbarColor: `${currentTheme.colors[2]} ${currentTheme.colors[1]}`,
   } as const;
 
+  // The main render function
   return (
     <div className={`flex flex-col items-center min-h-screen bg-[#323437] text-[#646669] ${nunito.className}`} style={{ backgroundColor: currentTheme.colors[1], color: currentTheme.colors[2] }}>
-      {/* Updated Navbar */}
+      {/* Navbar */}
       <nav className="w-full py-4 flex justify-center items-center">
         <div className="flex items-center">
           <Logo primaryColor={currentTheme.colors[2]} secondaryColor={currentTheme.colors[0]} />
@@ -336,8 +359,9 @@ export default function Component() {
         </div>
       </nav>
 
-      {/* Existing content */}
+      {/* Main content */}
       <div className="flex-grow flex flex-col items-center justify-center w-full">
+        {/* Timezone dropdown */}
         <div className="relative mb-4 w-full max-w-xs" ref={timezoneDropdownRef}>
           <button
             onClick={() => setIsTimezoneDropdownOpen(!isTimezoneDropdownOpen)}
@@ -377,14 +401,18 @@ export default function Component() {
             </div>
           )}
         </div>
+        {/* Time display */}
         <div className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-black mb-4 text-center" style={{ color: currentTheme.colors[0] }}>
           {timeData ? formatTime() : ''}
         </div>
+        {/* Date display */}
         <div className="text-lg sm:text-xl md:text-2xl font-bold mb-4 text-center">
           {timeData ? formatDate() : ''}
         </div>
       </div>
+      {/* Footer */}
       <div className="w-full">
+        {/* 24-hour/AM-PM toggle */}
         <div className="flex justify-center mb-4">
           <button
             onClick={() => setIs24Hour(!is24Hour)}
