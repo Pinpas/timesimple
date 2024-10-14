@@ -446,7 +446,7 @@ export default function Component() {
                 twitter
               </Link>
               <Link 
-                href="https://github.com/Pinpas" 
+                href="https://github.com/Pinpas/timesimple" 
                 className="hover:text-[#e2b714] transition-colors" 
                 style={{ color: currentTheme.colors[2] }}
                 target="_blank" 
