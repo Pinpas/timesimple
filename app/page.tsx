@@ -5,7 +5,6 @@ import { Globe, ChevronDown, Check, Search } from "lucide-react"
 import Link from "next/link"
 import { Nunito } from 'next/font/google'
 import './globals.css'
-import Head from "next/head"
 
 // I'm using the Nunito font for a clean, modern look
 const nunito = Nunito({
@@ -16,26 +15,103 @@ const nunito = Nunito({
 // Here's a list of timezones I want to support. I've chosen major cities 
 // from different parts of the world to give users a good range of options.
 const timezones = [
-  { name: "UTC", city: "UTC" },
-  { name: "Europe/London", city: "London" },
-  { name: "Europe/Paris", city: "Paris" },
-  { name: "Europe/Amsterdam", city: "Amsterdam" },
-  { name: "Africa/Cairo", city: "Cairo" },
-  { name: "Europe/Moscow", city: "Moscow" },
-  { name: "Asia/Dubai", city: "Dubai" },
-  { name: "Asia/Kolkata", city: "Mumbai" },
-  { name: "Asia/Shanghai", city: "Shanghai" },
-  { name: "Asia/Singapore", city: "Singapore" },
-  { name: "Asia/Tokyo", city: "Tokyo" },
-  { name: "Asia/Seoul", city: "Seoul" },
-  { name: "Australia/Sydney", city: "Sydney" },
-  { name: "Pacific/Auckland", city: "Auckland" },
-  { name: "America/Los_Angeles", city: "Los Angeles" },
-  { name: "America/New_York", city: "New York" },
-  { name: "America/Toronto", city: "Toronto" },
-  { name: "America/Mexico_City", city: "Mexico City" },
-  { name: "America/Sao_Paulo", city: "São Paulo" },
-  { name: "Africa/Johannesburg", city: "Johannesburg" },
+  { name: "UTC", city: "UTC", offset: "+00:00" },
+  { name: "Europe/London", city: "London", offset: "+00:00" },
+  { name: "Europe/Dublin", city: "Dublin", offset: "+00:00" },
+  { name: "Europe/Lisbon", city: "Lisbon", offset: "+00:00" },
+  { name: "Europe/Paris", city: "Paris", offset: "+01:00" },
+  { name: "Europe/Berlin", city: "Berlin", offset: "+01:00" },
+  { name: "Europe/Rome", city: "Rome", offset: "+01:00" },
+  { name: "Europe/Madrid", city: "Madrid", offset: "+01:00" },
+  { name: "Europe/Amsterdam", city: "Amsterdam", offset: "+01:00" },
+  { name: "Europe/Brussels", city: "Brussels", offset: "+01:00" },
+  { name: "Europe/Vienna", city: "Vienna", offset: "+01:00" },
+  { name: "Europe/Stockholm", city: "Stockholm", offset: "+01:00" },
+  { name: "Europe/Copenhagen", city: "Copenhagen", offset: "+01:00" },
+  { name: "Europe/Oslo", city: "Oslo", offset: "+01:00" },
+  { name: "Europe/Warsaw", city: "Warsaw", offset: "+01:00" },
+  { name: "Europe/Budapest", city: "Budapest", offset: "+01:00" },
+  { name: "Europe/Prague", city: "Prague", offset: "+01:00" },
+  { name: "Europe/Athens", city: "Athens", offset: "+02:00" },
+  { name: "Europe/Bucharest", city: "Bucharest", offset: "+02:00" },
+  { name: "Europe/Helsinki", city: "Helsinki", offset: "+02:00" },
+  { name: "Europe/Kiev", city: "Kiev", offset: "+02:00" },
+  { name: "Europe/Riga", city: "Riga", offset: "+02:00" },
+  { name: "Europe/Sofia", city: "Sofia", offset: "+02:00" },
+  { name: "Europe/Tallinn", city: "Tallinn", offset: "+02:00" },
+  { name: "Europe/Vilnius", city: "Vilnius", offset: "+02:00" },
+  { name: "Africa/Cairo", city: "Cairo", offset: "+02:00" },
+  { name: "Africa/Johannesburg", city: "Johannesburg", offset: "+02:00" },
+  { name: "Africa/Lagos", city: "Lagos", offset: "+01:00" },
+  { name: "Africa/Nairobi", city: "Nairobi", offset: "+03:00" },
+  { name: "Africa/Casablanca", city: "Casablanca", offset: "+00:00" },
+  { name: "Africa/Accra", city: "Accra", offset: "+00:00" },
+  { name: "Africa/Addis_Ababa", city: "Addis Ababa", offset: "+03:00" },
+  { name: "Europe/Moscow", city: "Moscow", offset: "+03:00" },
+  { name: "Europe/Istanbul", city: "Istanbul", offset: "+03:00" },
+  { name: "Asia/Dubai", city: "Dubai", offset: "+04:00" },
+  { name: "Asia/Tehran", city: "Tehran", offset: "+03:30" },
+  { name: "Asia/Baku", city: "Baku", offset: "+04:00" },
+  { name: "Asia/Yerevan", city: "Yerevan", offset: "+04:00" },
+  { name: "Asia/Kabul", city: "Kabul", offset: "+04:30" },
+  { name: "Asia/Karachi", city: "Karachi", offset: "+05:00" },
+  { name: "Asia/Tashkent", city: "Tashkent", offset: "+05:00" },
+  { name: "Asia/Kolkata", city: "Mumbai", offset: "+05:30" },
+  { name: "Asia/Colombo", city: "Colombo", offset: "+05:30" },
+  { name: "Asia/Kathmandu", city: "Kathmandu", offset: "+05:45" },
+  { name: "Asia/Dhaka", city: "Dhaka", offset: "+06:00" },
+  { name: "Asia/Almaty", city: "Almaty", offset: "+06:00" },
+  { name: "Asia/Yangon", city: "Yangon", offset: "+06:30" },
+  { name: "Asia/Bangkok", city: "Bangkok", offset: "+07:00" },
+  { name: "Asia/Jakarta", city: "Jakarta", offset: "+07:00" },
+  { name: "Asia/Phnom_Penh", city: "Phnom Penh", offset: "+07:00" },
+  { name: "Asia/Ho_Chi_Minh", city: "Ho Chi Minh City", offset: "+07:00" },
+  { name: "Asia/Shanghai", city: "Shanghai", offset: "+08:00" },
+  { name: "Asia/Singapore", city: "Singapore", offset: "+08:00" },
+  { name: "Asia/Hong_Kong", city: "Hong Kong", offset: "+08:00" },
+  { name: "Asia/Taipei", city: "Taipei", offset: "+08:00" },
+  { name: "Asia/Kuala_Lumpur", city: "Kuala Lumpur", offset: "+08:00" },
+  { name: "Asia/Manila", city: "Manila", offset: "+08:00" },
+  { name: "Asia/Makassar", city: "Makassar", offset: "+08:00" },
+  { name: "Asia/Seoul", city: "Seoul", offset: "+09:00" },
+  { name: "Asia/Tokyo", city: "Tokyo", offset: "+09:00" },
+  { name: "Asia/Pyongyang", city: "Pyongyang", offset: "+09:00" },
+  { name: "Australia/Darwin", city: "Darwin", offset: "+09:30" },
+  { name: "Australia/Adelaide", city: "Adelaide", offset: "+09:30" },
+  { name: "Australia/Sydney", city: "Sydney", offset: "+10:00" },
+  { name: "Australia/Melbourne", city: "Melbourne", offset: "+10:00" },
+  { name: "Australia/Brisbane", city: "Brisbane", offset: "+10:00" },
+  { name: "Australia/Hobart", city: "Hobart", offset: "+10:00" },
+  { name: "Pacific/Port_Moresby", city: "Port Moresby", offset: "+10:00" },
+  { name: "Pacific/Guadalcanal", city: "Honiara", offset: "+11:00" },
+  { name: "Pacific/Noumea", city: "Noumea", offset: "+11:00" },
+  { name: "Pacific/Auckland", city: "Auckland", offset: "+12:00" },
+  { name: "Pacific/Fiji", city: "Suva", offset: "+12:00" },
+  { name: "Pacific/Tongatapu", city: "Nuku'alofa", offset: "+13:00" },
+  { name: "Pacific/Apia", city: "Apia", offset: "+13:00" },
+  { name: "Pacific/Kiritimati", city: "Kiritimati", offset: "+14:00" },
+  { name: "America/Anchorage", city: "Anchorage", offset: "-09:00" },
+  { name: "America/Los_Angeles", city: "Los Angeles", offset: "-08:00" },
+  { name: "America/Vancouver", city: "Vancouver", offset: "-08:00" },
+  { name: "America/Phoenix", city: "Phoenix", offset: "-07:00" },
+  { name: "America/Denver", city: "Denver", offset: "-07:00" },
+  { name: "America/Chicago", city: "Chicago", offset: "-06:00" },
+  { name: "America/Mexico_City", city: "Mexico City", offset: "-06:00" },
+  { name: "America/Regina", city: "Regina", offset: "-06:00" },
+  { name: "America/New_York", city: "New York", offset: "-05:00" },
+  { name: "America/Toronto", city: "Toronto", offset: "-05:00" },
+  { name: "America/Bogota", city: "Bogota", offset: "-05:00" },
+  { name: "America/Lima", city: "Lima", offset: "-05:00" },
+  { name: "America/Caracas", city: "Caracas", offset: "-04:00" },
+  { name: "America/Santiago", city: "Santiago", offset: "-04:00" },
+  { name: "America/St_Johns", city: "St. John's", offset: "-03:30" },
+  { name: "America/Sao_Paulo", city: "São Paulo", offset: "-03:00" },
+  { name: "America/Buenos_Aires", city: "Buenos Aires", offset: "-03:00" },
+  { name: "America/Montevideo", city: "Montevideo", offset: "-03:00" },
+  { name: "America/Godthab", city: "Nuuk", offset: "-03:00" },
+  { name: "America/Noronha", city: "Fernando de Noronha", offset: "-02:00" },
+  { name: "Atlantic/Cape_Verde", city: "Praia", offset: "-01:00" },
+  { name: "Atlantic/Azores", city: "Ponta Delgada", offset: "-01:00" },
 ]
 
 // I've created a bunch of color themes. Each theme has a name and three colors:
@@ -85,45 +161,6 @@ const Logo = ({ primaryColor, secondaryColor }: { primaryColor: string; secondar
   </svg>
 );
 
-// This component dynamically updates the favicon based on the current theme.
-// It's a neat little touch that makes the site feel more cohesive.
-const DynamicFavicon = ({ primaryColor, secondaryColor }: { primaryColor: string; secondaryColor: string }) => {
-  useEffect(() => {
-    const canvas = document.createElement("canvas");
-    canvas.width = 32;
-    canvas.height = 32;
-    const ctx = canvas.getContext("2d");
-
-    if (ctx) {
-      // Draw the circle
-      ctx.beginPath();
-      ctx.arc(16, 16, 14, 0, 2 * Math.PI);
-      ctx.strokeStyle = primaryColor;
-      ctx.lineWidth = 3;
-      ctx.stroke();
-
-      // Draw the clock hands
-      ctx.beginPath();
-      ctx.moveTo(16, 16);
-      ctx.lineTo(16, 8);
-      ctx.moveTo(16, 16);
-      ctx.lineTo(22, 18);
-      ctx.strokeStyle = secondaryColor;
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      // Update favicon
-      const link: HTMLLinkElement = document.querySelector("link[rel*='icon']") || document.createElement('link');
-      link.type = 'image/x-icon';
-      link.rel = 'shortcut icon';
-      link.href = canvas.toDataURL("image/x-icon");
-      document.getElementsByTagName('head')[0].appendChild(link);
-    }
-  }, [primaryColor, secondaryColor]);
-
-  return null;
-};
-
 export default function Component() {
   // Here are all the state variables I'm using to manage the app's behavior
   const [timeData, setTimeData] = useState<TimeApiResponse | null>(null)
@@ -140,7 +177,7 @@ export default function Component() {
   // These refs help me manage the dropdown menus
   const timezoneDropdownRef = useRef<HTMLDivElement>(null)
   const themeDropdownRef = useRef<HTMLDivElement>(null)
-  const initialFetchDone = useRef(false)
+  const _initialFetchDone = useRef(false)
 
   // This function fetches the current time for a given timezone from an API
   const fetchTime = useCallback(async (tz: string) => {
@@ -170,38 +207,10 @@ export default function Component() {
     // Fetch time immediately on mount or timezone change
     fetchTime(timezone);
 
-    // I'm using two intervals here:
-    // 1. A fast interval to update seconds locally
-    const fastInterval = setInterval(() => {
-      setTimeData(prevTimeData => {
-        if (!prevTimeData) return null;
-        
-        let { year, month, day, hour, minute, seconds } = prevTimeData;
-        seconds++;
-        
-        // Handle rollovers for seconds, minutes, and hours
-        if (seconds >= 60) {
-          seconds = 0;
-          minute++;
-          if (minute >= 60) {
-            minute = 0;
-            hour++;
-            if (hour >= 24) {
-              hour = 0;
-              // I'm not handling day/month/year rollovers here
-              // The API call will correct this soon
-            }
-          }
-        }
-        
-        return { ...prevTimeData, hour, minute, seconds };
-      });
-    }, 1000);
-
-    // 2. A slower interval to fetch time from API
-    const slowInterval = setInterval(() => {
+    // Set up an interval to fetch time from API every 1 second
+    const updateInterval = setInterval(() => {
       fetchTime(timezone);
-    }, 30000); // Fetch every 30 seconds
+    }, 1000); // Fetch every 1 second
 
     // This function closes the dropdowns when clicking outside
     const handleClickOutside = (event: MouseEvent) => {
@@ -215,10 +224,9 @@ export default function Component() {
 
     document.addEventListener("mousedown", handleClickOutside)
 
-    // Cleanup function to clear intervals and remove event listener
+    // Cleanup function to clear interval and remove event listener
     return () => {
-      clearInterval(fastInterval);
-      clearInterval(slowInterval);
+      clearInterval(updateInterval);
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [fetchTime, timezone]);
@@ -394,7 +402,10 @@ export default function Component() {
                     onClick={() => handleTimezoneChange(tz.name)}
                   >
                     <span>{tz.city}</span>
-                    {timezone === tz.name && <Check size={16} style={{ color: currentTheme.colors[0] }} />}
+                    <div className="flex items-center">
+                      <span className="mr-2 text-sm opacity-70">{tz.offset}</span>
+                      {timezone === tz.name && <Check size={16} style={{ color: currentTheme.colors[0] }} />}
+                    </div>
                   </button>
                 ))}
               </div>
