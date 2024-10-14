@@ -5,6 +5,7 @@ import { Globe, ChevronDown, Check, Search } from "lucide-react"
 import Link from "next/link"
 import { Nunito } from 'next/font/google'
 import './globals.css'
+import Head from "next/head"
 
 const nunito = Nunito({
   subsets: ['latin'],
@@ -69,6 +70,50 @@ interface TimeApiResponse {
   timeZone: string;
 }
 
+const Logo = ({ primaryColor, secondaryColor }: { primaryColor: string; secondaryColor: string }) => (
+  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke={primaryColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M12 6V12L16 14" stroke={secondaryColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const DynamicFavicon = ({ primaryColor, secondaryColor }: { primaryColor: string; secondaryColor: string }) => {
+  useEffect(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 32;
+    canvas.height = 32;
+    const ctx = canvas.getContext("2d");
+
+    if (ctx) {
+      // Draw the circle
+      ctx.beginPath();
+      ctx.arc(16, 16, 14, 0, 2 * Math.PI);
+      ctx.strokeStyle = primaryColor;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      // Draw the clock hands
+      ctx.beginPath();
+      ctx.moveTo(16, 16);
+      ctx.lineTo(16, 8);
+      ctx.moveTo(16, 16);
+      ctx.lineTo(22, 18);
+      ctx.strokeStyle = secondaryColor;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Update favicon
+      const link: HTMLLinkElement = document.querySelector("link[rel*='icon']") || document.createElement('link');
+      link.type = 'image/x-icon';
+      link.rel = 'shortcut icon';
+      link.href = canvas.toDataURL("image/x-icon");
+      document.getElementsByTagName('head')[0].appendChild(link);
+    }
+  }, [primaryColor, secondaryColor]);
+
+  return null;
+};
+
 export default function Component() {
   const [timeData, setTimeData] = useState<TimeApiResponse | null>(null)
   const [is24Hour, setIs24Hour] = useState(true)
@@ -108,15 +153,40 @@ export default function Component() {
   }, []);
 
   useEffect(() => {
-    // Fetch time only once on initial render
-    if (!initialFetchDone.current) {
-      fetchTime(timezone);
-      initialFetchDone.current = true;
-    }
+    // Fetch time immediately on mount or timezone change
+    fetchTime(timezone);
 
-    const timer = setInterval(() => {
-      setTimeData(prevTimeData => prevTimeData ? { ...prevTimeData, seconds: prevTimeData.seconds + 1 } : null);
+    // Set up two intervals:
+    // 1. A fast interval to update seconds locally
+    const fastInterval = setInterval(() => {
+      setTimeData(prevTimeData => {
+        if (!prevTimeData) return null;
+        
+        let { year, month, day, hour, minute, seconds } = prevTimeData;
+        seconds++;
+        
+        if (seconds >= 60) {
+          seconds = 0;
+          minute++;
+          if (minute >= 60) {
+            minute = 0;
+            hour++;
+            if (hour >= 24) {
+              hour = 0;
+              // We're not handling day/month/year rollovers here
+              // The API call will correct this soon
+            }
+          }
+        }
+        
+        return { ...prevTimeData, hour, minute, seconds };
+      });
     }, 1000);
+
+    // 2. A slower interval to fetch time from API
+    const slowInterval = setInterval(() => {
+      fetchTime(timezone);
+    }, 30000); // Fetch every 30 seconds
 
     const handleClickOutside = (event: MouseEvent) => {
       if (timezoneDropdownRef.current && !timezoneDropdownRef.current.contains(event.target as Node)) {
@@ -129,11 +199,73 @@ export default function Component() {
 
     document.addEventListener("mousedown", handleClickOutside)
 
+    // Cleanup function
     return () => {
-      clearInterval(timer)
-      document.removeEventListener("mousedown", handleClickOutside)
-    }
+      clearInterval(fastInterval);
+      clearInterval(slowInterval);
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, [fetchTime, timezone]);
+
+  useEffect(() => {
+    // This effect will run when the theme changes
+    const updateFavicon = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 32;
+      canvas.height = 32;
+      const ctx = canvas.getContext("2d");
+
+      if (ctx) {
+        // Draw the circle
+        ctx.beginPath();
+        ctx.arc(16, 16, 14, 0, 2 * Math.PI);
+        ctx.strokeStyle = currentTheme.colors[2];
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        // Draw the clock hands
+        ctx.beginPath();
+        ctx.moveTo(16, 16);
+        ctx.lineTo(16, 8);
+        ctx.moveTo(16, 16);
+        ctx.lineTo(22, 18);
+        ctx.strokeStyle = currentTheme.colors[0];
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Update favicon
+        const faviconUrl = canvas.toDataURL("image/x-icon");
+        
+        // Remove existing favicon
+        const existingFavicon = document.querySelector("link[rel*='icon']");
+        if (existingFavicon) {
+          document.head.removeChild(existingFavicon);
+        }
+
+        // Create and add new favicon
+        const link = document.createElement('link');
+        link.type = 'image/x-icon';
+        link.rel = 'shortcut icon';
+        link.href = faviconUrl;
+        document.head.appendChild(link);
+
+        // Force favicon refresh
+        const faviconTag = document.createElement('link');
+        faviconTag.rel = 'shortcut icon';
+        faviconTag.href = 'data:image/x-icon;,';
+        document.head.appendChild(faviconTag);
+        document.head.removeChild(faviconTag);
+      }
+    };
+
+    // Update favicon immediately
+    updateFavicon();
+
+    // Update favicon again after a short delay
+    const timeoutId = setTimeout(updateFavicon, 100);
+
+    return () => clearTimeout(timeoutId);
+  }, [currentTheme]);
 
   const handleTimezoneChange = useCallback((newTimezone: string) => {
     setTimezone(newTimezone);
@@ -144,12 +276,13 @@ export default function Component() {
   const formatTime = () => {
     if (!timeData) return '';
     const { hour, minute, seconds } = timeData;
+    const formattedSeconds = Math.min(59, Math.max(0, seconds)).toString().padStart(2, '0');
     if (is24Hour) {
-      return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:${formattedSeconds}`;
     } else {
       const period = hour >= 12 ? 'PM' : 'AM';
       const hour12 = hour % 12 || 12;
-      return `${hour12.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')} ${period}`;
+      return `${hour12.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:${formattedSeconds} ${period}`;
     }
   }
 
@@ -194,7 +327,16 @@ export default function Component() {
   } as const;
 
   return (
-    <div className={`flex flex-col items-center justify-between min-h-screen bg-[#323437] text-[#646669] ${nunito.className} p-4`} style={{ backgroundColor: currentTheme.colors[1], color: currentTheme.colors[2] }}>
+    <div className={`flex flex-col items-center min-h-screen bg-[#323437] text-[#646669] ${nunito.className}`} style={{ backgroundColor: currentTheme.colors[1], color: currentTheme.colors[2] }}>
+      {/* Updated Navbar */}
+      <nav className="w-full py-4 flex justify-center items-center">
+        <div className="flex items-center">
+          <Logo primaryColor={currentTheme.colors[2]} secondaryColor={currentTheme.colors[0]} />
+          <span className="text-2xl font-bold ml-2" style={{ color: currentTheme.colors[0] }}>TimeSimple</span>
+        </div>
+      </nav>
+
+      {/* Existing content */}
       <div className="flex-grow flex flex-col items-center justify-center w-full">
         <div className="relative mb-4 w-full max-w-xs" ref={timezoneDropdownRef}>
           <button
@@ -297,7 +439,7 @@ export default function Component() {
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
                   </div>
-                  <div className="max-h-60 overflow-y-auto" style={scrollbarStyles}>
+                  <div className="max-h-80 overflow-y-auto" style={scrollbarStyles}>
                     {filteredThemes.map((theme) => (
                       <button
                         key={theme.name}
@@ -308,7 +450,12 @@ export default function Component() {
                           setIsThemeDropdownOpen(false)
                         }}
                       >
-                        <span>{theme.name}</span>
+                        <span className="flex items-center">
+                          {theme.name}
+                          {currentTheme.name === theme.name && (
+                            <Check size={16} className="ml-2" style={{ color: currentTheme.colors[0] }} />
+                          )}
+                        </span>
                         <div className="flex space-x-1">
                           {theme.colors.map((color, index) => (
                             <div key={index} className="w-4 h-4 rounded-full" style={{ backgroundColor: color }}></div>
