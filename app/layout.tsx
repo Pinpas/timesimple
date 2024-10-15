@@ -14,6 +14,18 @@ export const metadata: Metadata = {
   icons: {
     icon: '/favicon.ico', // Add a default favicon here
   },
+  openGraph: {
+    title: 'Time Simple | Simplicity in Every Second',
+    description: 'Time is simple and more than a clock.',
+    images: [
+      {
+        url: '/images/timesimple-banner.jpg',
+        width: 1920,
+        height: 1440,
+        alt: 'Site Banner',
+      },
+    ],
+  },
 };
 
 export default function RootLayout({
