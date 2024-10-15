@@ -152,14 +152,62 @@ interface TimeApiResponse {
   timeZone: string;
 }
 
-// This is a simple SVG logo component. I'm using it in the navbar.
-// It takes primary and secondary colors as props to match the current theme.
-const Logo = ({ primaryColor, secondaryColor }: { primaryColor: string; secondaryColor: string }) => (
-  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke={primaryColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M12 6V12L16 14" stroke={secondaryColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
+// Replace the existing Logo component with this new Canvas-based Logo
+const Logo = ({ primaryColor, secondaryColor, currentTime }: { primaryColor: string; secondaryColor: string; currentTime: Date }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const drawClock = () => {
+      ctx.clearRect(0, 0, 40, 40);
+
+      // Draw the circle
+      ctx.beginPath();
+      ctx.arc(20, 20, 18, 0, 2 * Math.PI);
+      ctx.strokeStyle = primaryColor;
+      ctx.lineWidth = 3.5;
+      ctx.stroke();
+
+      const hours = currentTime.getHours() % 12;
+      const minutes = currentTime.getMinutes();
+
+      // Calculate angles for hour and minute hands
+      const hourAngle = (hours + minutes / 60) * (Math.PI * 2 / 12) - Math.PI / 2;
+      const minuteAngle = minutes * (Math.PI * 2 / 60) - Math.PI / 2;
+
+      // Draw hour hand
+      ctx.beginPath();
+      ctx.lineCap = 'round'; // Add rounded end to the line
+      ctx.moveTo(20, 20);
+      ctx.lineTo(20 + Math.cos(hourAngle) * 8, 20 + Math.sin(hourAngle) * 8);
+      ctx.strokeStyle = secondaryColor;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      // Draw minute hand
+      ctx.beginPath();
+      ctx.lineCap = 'round'; // Add rounded end to the line
+      ctx.moveTo(20, 20);
+      ctx.lineTo(20 + Math.cos(minuteAngle) * 12, 20 + Math.sin(minuteAngle) * 12);
+      ctx.strokeStyle = secondaryColor;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    };
+
+    drawClock();
+
+    const intervalId = setInterval(drawClock, 1000);
+
+    return () => clearInterval(intervalId);
+  }, [primaryColor, secondaryColor, currentTime]);
+
+  return <canvas ref={canvasRef} width={40} height={40} />;
+};
 
 export default function Component() {
   // Here are all the state variables I'm using to manage the app's behavior
@@ -178,15 +226,36 @@ export default function Component() {
   const timezoneDropdownRef = useRef<HTMLDivElement>(null)
   const themeDropdownRef = useRef<HTMLDivElement>(null)
 
-  // This function fetches the current time for a given timezone from an API
+  // Modify the currentTime state to include timezone
+  const [currentTime, setCurrentTime] = useState({ time: new Date(), timezone });
+
+  // Update this useEffect to handle both regular updates and timezone changes
+  useEffect(() => {
+    const updateTime = () => {
+      if (timeData) {
+        const newTime = new Date(timeData.dateTime);
+        setCurrentTime({ time: newTime, timezone });
+      }
+    };
+
+    // Update immediately when timeData changes (which includes timezone changes)
+    updateTime();
+
+    // Set up an interval for regular updates
+    const timer = setInterval(updateTime, 1000);
+
+    return () => clearInterval(timer);
+  }, [timeData, timezone]);
+
+  // Modify the fetchTime function to update currentTime immediately
   const fetchTime = useCallback(async (tz: string) => {
     try {
       const response = await fetch(`https://timeapi.io/api/Time/current/zone?timeZone=${encodeURIComponent(tz)}`);
       const data: TimeApiResponse = await response.json();
       setTimeData(data);
+      setCurrentTime({ time: new Date(data.dateTime), timezone: tz });
     } catch (error) {
       console.error("Failed to fetch time:", error);
-      // If the API call fails, I fall back to using the system time
       const now = new Date();
       setTimeData({
         year: now.getFullYear(),
@@ -198,6 +267,7 @@ export default function Component() {
         dateTime: now.toISOString(),
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
       });
+      setCurrentTime({ time: now, timezone: tz });
     }
   }, []);
 
@@ -230,16 +300,25 @@ export default function Component() {
     };
   }, [fetchTime, timezone]);
 
-  // This effect updates the favicon when the theme changes
+  // This effect updates the favicon when the theme changes or time updates
   useEffect(() => {
-    // This effect will run when the theme changes
     const updateFavicon = () => {
+      if (!timeData) return; // Don't update if we don't have time data
+
       const canvas = document.createElement("canvas");
       canvas.width = 32;
       canvas.height = 32;
       const ctx = canvas.getContext("2d");
 
       if (ctx) {
+        // Use timeData instead of new Date()
+        const hours = timeData.hour % 12;
+        const minutes = timeData.minute;
+
+        // Calculate angles for hour and minute hands
+        const hourAngle = (hours + minutes / 60) * (Math.PI * 2 / 12) - Math.PI / 2;
+        const minuteAngle = minutes * (Math.PI * 2 / 60) - Math.PI / 2;
+
         // Draw the circle
         ctx.beginPath();
         ctx.arc(16, 16, 14, 0, 2 * Math.PI);
@@ -247,14 +326,22 @@ export default function Component() {
         ctx.lineWidth = 3;
         ctx.stroke();
 
-        // Draw the clock hands
+        // Draw hour hand
         ctx.beginPath();
+        ctx.lineCap = 'round'; // Add rounded end to the line
         ctx.moveTo(16, 16);
-        ctx.lineTo(16, 8);
-        ctx.moveTo(16, 16);
-        ctx.lineTo(22, 18);
+        ctx.lineTo(16 + Math.cos(hourAngle) * 7, 16 + Math.sin(hourAngle) * 7);
         ctx.strokeStyle = currentTheme.colors[0];
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        // Draw minute hand
+        ctx.beginPath();
+        ctx.lineCap = 'round'; // Add rounded end to the line
+        ctx.moveTo(16, 16);
+        ctx.lineTo(16 + Math.cos(minuteAngle) * 9, 16 + Math.sin(minuteAngle) * 9);
+        ctx.strokeStyle = currentTheme.colors[0];
+        ctx.lineWidth = 3;
         ctx.stroke();
 
         // Update favicon
@@ -272,24 +359,19 @@ export default function Component() {
         link.rel = 'shortcut icon';
         link.href = faviconUrl;
         document.head.appendChild(link);
-
-        // Force favicon refresh
-        const faviconTag = document.createElement('link');
-        faviconTag.rel = 'shortcut icon';
-        faviconTag.href = 'data:image/x-icon;,';
-        document.head.appendChild(faviconTag);
-        document.head.removeChild(faviconTag);
       }
     };
 
-    // Update favicon immediately
-    updateFavicon();
+    // Update favicon immediately if we have time data
+    if (timeData) {
+      updateFavicon();
+    }
 
-    // Update favicon again after a short delay
-    const timeoutId = setTimeout(updateFavicon, 100);
+    // Set up an interval to update the favicon every minute
+    const intervalId = setInterval(updateFavicon, 60000);
 
-    return () => clearTimeout(timeoutId);
-  }, [currentTheme]);
+    return () => clearInterval(intervalId);
+  }, [currentTheme, timeData]); // Add timeData to the dependency array
 
   // This function handles timezone changes
   const handleTimezoneChange = useCallback((newTimezone: string) => {
@@ -361,7 +443,7 @@ export default function Component() {
       {/* Navbar */}
       <nav className="w-full py-4 flex justify-center items-center">
         <div className="flex items-center">
-          <Logo primaryColor={currentTheme.colors[2]} secondaryColor={currentTheme.colors[0]} />
+          <Logo primaryColor={currentTheme.colors[2]} secondaryColor={currentTheme.colors[0]} currentTime={currentTime.time} />
           <span className="text-2xl font-bold ml-2" style={{ color: currentTheme.colors[0] }}>TimeSimple</span>
         </div>
       </nav>
