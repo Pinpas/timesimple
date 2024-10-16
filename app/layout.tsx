@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   title: "Time Simple | Simplicity in Every Second",
   description: "Time is simple and more than a clock.",
   icons: {
-    icon: '/favicon.ico', // Add a default favicon here
+    icon: '/favicon.ico',
   },
   openGraph: {
     title: 'Time Simple | Simplicity in Every Second',
@@ -37,20 +37,10 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <Script
+          defer
+          src="https://umami-ml6qjrvji-pinpas-projects.vercel.app/script.js"
+          data-website-id="d5c52f9b-465a-4d8e-87a6-6c5a869a6f67"
           strategy="afterInteractive"
-          src="https://www.googletagmanager.com/gtag/js?id=G-5D1SZN52NB"
-        />
-        <Script
-          id="google-analytics"
-          strategy="afterInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', 'G-5D1SZN52NB');
-            `,
-          }}
         />
       </head>
       <body className={nunito.className}>
