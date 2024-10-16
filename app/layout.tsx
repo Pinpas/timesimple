@@ -38,8 +38,8 @@ export default function RootLayout({
       <head>
         <Script
           defer
-          src="https://umami-ml6qjrvji-pinpas-projects.vercel.app/script.js"
-          data-website-id="df8989af-dbac-427d-aed9-c534dd5d6ef7"
+          src="https://umami-analytics-seven.vercel.app/script.js"
+          data-website-id="6c094a5b-76fc-4ac2-9a0a-f426fe40294d"
           strategy="afterInteractive"
         />
       </head>
