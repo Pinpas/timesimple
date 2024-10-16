@@ -35,16 +35,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <head>
+      <body className={nunito.className}>
+        {children}
         <Script
-          defer
           src="https://umami-ml6qjrvji-pinpas-projects.vercel.app/script.js"
           data-website-id="d5c52f9b-465a-4d8e-87a6-6c5a869a6f67"
           strategy="afterInteractive"
         />
-      </head>
-      <body className={nunito.className}>
-        {children}
         <Script
           src='https://static.cloudflareinsights.com/beacon.min.js'
           data-cf-beacon='{"token": "62b380f5f7894f1cba1ce496815139a6"}'
